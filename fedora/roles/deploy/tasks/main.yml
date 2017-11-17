@@ -1,0 +1,61 @@
+---
+# task file for deploy
+    - name: Create gunicorn.service file
+      copy:
+        content: |        
+          [Unit]
+          Description=gunicorn daemon
+          After=network.target
+
+          [Service]
+          User=transtats
+          Group=nginx
+          WorkingDirectory=/home/transtats/transtats
+          ExecStart=/home/transtats/transtats/projectenv/bin/gunicorn --workers 3 --bind unix:/home/transtats/transtats/transtats/transtats.sock transtats.wsgi:application
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/gunicorn.service
+
+    - name: Start gunicorn service
+      service:
+        name: gunicorn
+        enabled: yes
+        state: started
+
+    - name: Copy content to nginx.conf 
+      blockinfile: 
+        path: /etc/nginx/nginx.conf
+        insertafter: "include /etc/nginx/conf.d/*.conf;"
+        content: | 
+          server {
+                   listen 80;
+                   server_name 192.168.122.102;
+
+                   location = /favicon.ico { access_log off; log_not_found off; }
+                   location /static/ {
+                   root /home/transtats/transtats/transtats;
+                  }
+
+                  location / {
+                     proxy_set_header Host $http_host;
+                     proxy_set_header X-Real-IP $remote_addr;
+                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                     proxy_set_header X-Forwarded-Proto $scheme;
+                     proxy_pass http://unix:/home/transtats/transtats/transtats/transtats.sock;
+                     proxy_connect_timeout 180s;
+                     proxy_read_timeout 300s;
+                  }
+                } 
+
+    #- command: 'usermod -a -G transtats nginx'
+
+    - command: 'chmod 710 /home/transtats'
+
+    - command: 'chown -R transtats:nginx /home/transtats'
+
+    - service: 
+        name: nginx
+        enabled: yes
+        state: started
+   

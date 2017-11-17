@@ -1,0 +1,36 @@
+---
+# task file for env setup
+     - name: Install virtualenv
+       command: 'pip3 install virtualenv'
+
+     - name: create user transtats
+       user:
+         name: transtats
+
+     - name: switch user to transtats
+       command: '/bin/su - transtats'
+
+     - name: Clone transtats git repo
+       git:
+         repo: https://github.com/transtats/transtats.git
+         dest: /home/transtats/transtats
+
+     - command: 'cd /home/transtats/transtats'
+
+     - name: Create virtual env
+       command: 'virtualenv --system-site-packages --python=python3 projectenv'
+
+     - name: activate virtual env
+       shell: 'pwd && source projectenv/bin/activate' 
+
+     - name: install requirements
+       pip: 
+         requirements: /home/transtats/transtats/requirements/base.txt
+         virtualenv: /home/transtats/transtats/projectenv
+         virtualenv_command: virtualenv-3.4
+
+     - copy:
+         src: /home/transtats/transtats/transtats/settings/keys.json.example
+         dest: /home/transtats/transtats/transtats/settings/keys.json
+
+     - command: 'cd /home/transtats/transtats && make migrate'   

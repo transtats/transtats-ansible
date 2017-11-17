@@ -1,0 +1,31 @@
+---
+# tasks to get transtats code
+    - name: Get url
+      shell: curl -s https://api.github.com/repos/transtats/transtats/releases/latest | grep tarball_url | head -n 1 | cut -d '"' -f 4
+      register: url
+
+    - set_fact: 
+        transtats_url: "{{ url.stdout }}"
+        cacheable: true
+
+    - debug:
+        var: transtats_url
+
+    - name: Download transtats tarfile 
+      get_url:
+        dest: /tmp/transtats.tar.gz
+        url: "{{ transtats_url }}"
+        force: yes
+
+    - file:
+       path: /workspace
+       state: directory
+       mode: 0755    
+
+    - name: Extract transtats.tar.gz into /workspace
+      unarchive:
+        src: /tmp/transtats.tar.gz
+        dest: /workspace/
+      
+    - name: Move code to /workspace/transtats-code
+      shell: 'rm -rf /workspace/transtats && mv /workspace/transtats-transtats* /workspace/transtats'

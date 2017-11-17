@@ -1,0 +1,38 @@
+---
+# tasks to setup  
+    - name: Update all
+      dnf:
+        name: '*'
+        state: latest
+
+    - name: Install necessary packages
+      dnf:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - gcc
+        - findutils
+        - git
+        - python
+        - python3-devel
+        - python3-pip
+        - libselinux-python
+        - redhat-rpm-config
+        - koji
+        - nginx
+      ignore_errors: yes
+
+    - name: Install postgresql package's
+      dnf:
+        name: "{{item}}"
+        state: latest
+      with_items:
+        - postgresql-server
+        - postgresql-contrib
+        - postgresql-devel
+        - openssh-server
+        - openssl-devel 
+
+    - name: Autoremove unneeded packages installed as dependencies
+      dnf:
+        autoremove: yes

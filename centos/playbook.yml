@@ -1,0 +1,10 @@
+---
+- name: Centos-roles
+  hosts: localhost
+  become: true
+  vars:
+  roles:
+    - setup
+    - db
+    - env
+    - deploy  
