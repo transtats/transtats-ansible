@@ -26,7 +26,7 @@
     - name: Copy content to nginx.conf 
       blockinfile: 
         path: /etc/nginx/nginx.conf
-        insertafter: "include /etc/nginx/conf.d/*.conf;"
+        insertafter: 'include.*\/etc\/nginx\/conf.d.*'
         content: | 
           server {
                    listen 80;
@@ -48,14 +48,13 @@
                   }
                 } 
 
-    #- command: 'usermod -a -G transtats nginx'
+    - name: Add the nginx user to your group
+      command: 'usermod -a -G transtats nginx'
 
-    - command: 'chmod 710 /home/transtats'
-
-    - command: 'chown -R transtats:nginx /home/transtats'
+    - name: Give our user group execute permissions on our home directory
+      command: 'chmod 710 /home/transtats'
 
     - service: 
         name: nginx
         enabled: yes
         state: started
-   
