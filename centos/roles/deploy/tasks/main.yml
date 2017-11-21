@@ -1,8 +1,7 @@
 ---
 # task file for deploy
-    - command: 'cd /home/transtats/transtats && gunicorn --bind 0.0.0.0:8000 transtats.wsgi:application && exit'
-
-    - copy:
+    - name: Create gunicorn.service file
+      copy:
         content: |        
           [Unit]
           Description=gunicorn daemon
@@ -18,7 +17,8 @@
           WantedBy=multi-user.target
         dest: /etc/systemd/system/gunicorn.service
 
-    - service:
+    - name: Start gunicorn service
+      service:
         name: gunicorn
         enabled: yes
         state: started
@@ -26,11 +26,11 @@
     - name: Copy content to nginx.conf 
       blockinfile: 
         path: /etc/nginx/nginx.conf
-        insertbefore: "}"
+        insertafter: "include /etc/nginx/conf.d/*.conf;"
         content: | 
           server {
                    listen 80;
-                   server_name transtats.int.devlab.redhat.com;
+                   server_name 192.168.122.85;
 
                    location = /favicon.ico { access_log off; log_not_found off; }
                    location /static/ {
@@ -48,9 +48,11 @@
                   }
                 } 
 
-    - command: 'usermod -a -G transtats nginx'
+    #- command: 'usermod -a -G transtats nginx'
 
     - command: 'chmod 710 /home/transtats'
+
+    - command: 'chown -R transtats:nginx /home/transtats'
 
     - service: 
         name: nginx

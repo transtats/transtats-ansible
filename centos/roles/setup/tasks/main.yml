@@ -34,6 +34,9 @@
         - nginx
       ignore_errors: yes
 
+    - name: Execute yum clean 
+      command: yum clean all  
+
     - name: Uninstall pgdg package if already install
       yum: 
         name: pgdg-centos95.noarch
