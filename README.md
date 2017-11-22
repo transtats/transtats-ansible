@@ -8,10 +8,9 @@ Ansible project for Deploying Transtats
 - Clone this project.
 - Edit the `transtats-ansible/hosts` file and enter the IP address of the server you are
 	deploying to and edit the path to the private key file.
-- Edit the `transtats-ansible/vars.yml` file and enter values appropriate for your project.
 - Run the playbook:
 
 	```
-	cd ansible
-	ansible-playbook -i hosts provision.yml
+	cd transtats-ansible
+	ansible-playbook provision.yml
 	```	

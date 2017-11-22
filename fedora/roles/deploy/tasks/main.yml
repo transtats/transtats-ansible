@@ -1,5 +1,9 @@
 ---
 # task file for deploy
+    - group:
+        name: transtats
+        state: present
+
     - name: Add the nginx user to your group
       command: 'usermod -a -G transtats nginx'
 
@@ -31,7 +35,8 @@
       service:
         name: gunicorn
         enabled: yes
-        state: started
+        state: restarted
+        daemon_reload: yes
 
     - name: Copy content to nginx.conf 
       blockinfile: 
