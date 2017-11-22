@@ -1,5 +1,14 @@
 ---
 # task file for deploy
+    - name: Add the nginx user to your group
+      command: 'usermod -a -G transtats nginx'
+
+    - name: Give our user group execute permissions on our home directory
+      command: 'chmod 710 /home/transtats'
+
+    - name: Change /home/transtats permission 
+      command: 'chown -R transtats:nginx /home/transtats'    
+
     - name: Create gunicorn.service file
       copy:
         content: |        
@@ -11,7 +20,7 @@
           User=transtats
           Group=nginx
           WorkingDirectory=/home/transtats/transtats
-          ExecStart=/home/transtats/transtats/projectenv/bin/gunicorn --workers 3 --bind unix:/home/transtats/transtats/transtats/transtats.sock transtats.wsgi:application
+          ExecStart=/home/transtats/transtats/projectenv/bin/gunicorn --workers 3 --bind unix:/home/transtats/transtats/transtats.sock transtats.wsgi:application
 
           [Install]
           WantedBy=multi-user.target
@@ -42,18 +51,13 @@
                      proxy_set_header X-Real-IP $remote_addr;
                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                      proxy_set_header X-Forwarded-Proto $scheme;
-                     proxy_pass http://unix:/home/transtats/transtats/transtats/transtats.sock;
+                     proxy_pass http://unix:/home/transtats/transtats/transtats.sock;
                      proxy_connect_timeout 180s;
                      proxy_read_timeout 300s;
                   }
                 } 
 
-    - name: Add the nginx user to your group
-      command: 'usermod -a -G transtats nginx'
-
-    - name: Give our user group execute permissions on our home directory
-      command: 'chmod 710 /home/transtats'
-
+  
     - service: 
         name: nginx
         enabled: yes

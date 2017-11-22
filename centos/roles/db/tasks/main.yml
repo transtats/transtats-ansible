@@ -14,7 +14,7 @@
         group: 26
         mode: 0700   
     
-    - name: Create gunicorn.service file
+    - name: Create pg_hba.conf file
       copy:
         content: | 
           # TYPE  DATABASE        USER            ADDRESS                 METHOD
