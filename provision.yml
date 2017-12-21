@@ -2,10 +2,12 @@
 - name: roles
   hosts: All 
   become: true
-  vars:
+  vars_files:
+    - "env_vars/env.yml"
+    - "vars/common-vars.yml"
+    - "vars/{{ ansible_distribution }}-vars.yml"
   roles:
     - setup
     - db
     - env
     - deploy
-    

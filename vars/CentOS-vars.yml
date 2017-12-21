@@ -1,0 +1,33 @@
+---
+
+# Data directory path
+data_dir: /var/lib/pgsql/9.5/data/
+
+#Postgesql service name
+pgsql_service: postgresql-9.5
+
+#Init db command for rhel and centos
+init_db: '/usr/pgsql-9.5/bin/postgresql95-setup initdb'
+
+#Epel package url 
+epel_url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+#pgdg pacakge url for centos
+pgdg_url: http://yum.postgresql.org/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-2.noarch.rpm       
+
+#System packages
+system_packages:
+- gcc
+- python34-devel
+- python34-pip
+- git
+- nginx
+
+#Database packages
+db_packages:
+- postgresql95
+- postgresql95-server
+- postgresql95-libs
+- postgresql95-contrib
+- postgresql95-devel
+- python-psycopg2

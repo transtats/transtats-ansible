@@ -1,0 +1,17 @@
+---
+# Task file for downloding released tar file
+- name: Download transtats tarfile 
+  get_url:
+    dest: '{{ user_home }}/transtats.tar.gz'
+    url: "{{ transtats_url }}"
+    force: yes        
+
+- name: Extract transtats.tar.gz into '{{ user_home }}'
+  unarchive:
+    src: '{{ user_home }}/transtats.tar.gz'
+    dest: '{{ user_home }}/'  
+    remote_src: yes       
+
+- name: Move code to '{{ user_home }}'/transtats-code
+  shell: 'rm -rf {{ user_home }}/transtats && mv {{ user_home }}/transtats-transtats* {{ user_home }}/transtats'       
+       

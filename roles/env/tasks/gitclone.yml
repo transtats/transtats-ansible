@@ -1,0 +1,10 @@
+---
+# task file for cloning git repo
+- name: remove dir structure if already exist
+  file:
+    state: absent
+    path: '{{ user_home }}/transtats'
+- git:
+    repo: '{{ application_git_url }}'
+    dest: '{{ user_home }}/transtats'
+       

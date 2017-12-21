@@ -1,0 +1,70 @@
+---
+# task file for env setup
+     - name: Install virtualenv
+       command: 'pip3 install virtualenv'
+
+     - name: create user transtats
+       user:
+         name: '{{ application_user }}'
+         shell: /bin/bash
+         comment: "transtats"
+         uid: 1040
+         group: nginx
+         
+     - name: switch user to transtats
+       command: '/bin/su - {{ application_user }}'
+
+     - name: Get url
+       shell: curl -s {{ application_url }} | grep tarball_url | head -n 1 | cut -d '"' -f 4
+       register: url
+       
+     - set_fact: 
+         transtats_url: "{{ url.stdout }}"
+         cacheable: true       
+
+     - debug:
+         msg: "git_clone value {{ git_clone }}"  
+
+     - name: clone git repo
+       include_tasks: gitclone.yml
+       when: '{{ git_clone }} == true'
+
+     - name: Download released trastats tar file 
+       include_tasks: cloneReleaseTar.yml
+       when: '{{ git_clone }} == false'    
+
+     - copy:
+         src: '{{ user_home }}/transtats/transtats/settings/keys.json.example'
+         dest: '{{ user_home }}/transtats/transtats/settings/keys.json'
+         remote_src: yes
+
+     - command: 'cd {{ user_home }}/transtats'
+
+     - name: Create virtual env
+       command: 'virtualenv --system-site-packages --python=python3 projectenv'
+
+     - name: activate virtual env
+       shell: 'source projectenv/bin/activate'   
+
+#This is temporary change until next release 
+     - name: Replace django version to 1.11.8
+       lineinfile:
+        path: '{{ requirements_path }}'
+        state: present
+        regexp: 'Django'
+        line: 'Django==1.11.8'  
+
+     - name: install requirements
+       pip: 
+         requirements: '{{ requirements_path }}'
+         virtualenv: '{{ user_home }}/transtats/projectenv'
+         virtualenv_command: virtualenv
+
+     - name: Run make migrate
+       shell: 'cd {{ user_home }}/transtats && source projectenv/bin/activate && make migrate'  
+
+
+
+     
+     
+

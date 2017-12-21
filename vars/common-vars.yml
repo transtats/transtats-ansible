@@ -1,0 +1,16 @@
+---
+
+# Project github url for latest release
+application_url: https://api.github.com/repos/transtats/transtats/releases/latest
+
+# Application git clone url
+application_git_url: https://github.com/transtats/transtats.git
+
+# Applicaiton user name  
+application_user: transtats
+
+#path of requirements to be install  
+requirements_path: /home/transtats/transtats/requirements/base.txt
+
+# Users/Application home
+user_home: /home/{{ application_user }}

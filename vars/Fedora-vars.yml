@@ -1,0 +1,33 @@
+---
+
+# Data directory path
+data_dir: /var/lib/pgsql/data/
+
+#Postgesql service name
+pgsql_service: postgresql
+
+#Init db command for fedora
+init_db: postgresql-setup --initdb
+
+#System packages
+system_packages:
+- gcc
+- findutils
+- git
+- python
+- python3-devel
+- python3-pip
+- libselinux-python
+- redhat-rpm-config
+- koji
+- nginx
+
+#Database packages
+db_packages:
+- postgresql-server
+- postgresql-contrib
+- postgresql-devel
+- openssh-server
+- openssl-devel
+- python-psycopg2
+ 
