@@ -60,8 +60,8 @@
          virtualenv: '{{ user_home }}/transtats/projectenv'
          virtualenv_command: virtualenv
 
-     - name: Run make migrate and make statuc
-       shell: 'cd {{ user_home }}/transtats && source projectenv/bin/activate && make migrate && make static'  
+     - name: Run make migrate and make static
+       shell: 'cd {{ user_home }}/transtats && source projectenv/bin/activate && make migrate'  
 
 
 
