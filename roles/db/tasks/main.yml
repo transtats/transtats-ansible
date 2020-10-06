@@ -1,8 +1,27 @@
 ---
 # task file db 
+    - name: Update all
+      dnf:
+        name: '*'
+        state: latest
+
+    - name: Ensure packages present
+      package:
+        name: ' {{ item }} '
+        state: latest
+      with_items:
+        - '{{ db_packages }}'
+          
+    - name: Stop postgresql service 
+      service: 
+        name: '{{ pgsql_service }}'
+        enabled: yes
+        state: stopped
 
     - name: Delete data directory if exists
       command: 'rm -rf {{ data_dir }}'
+      args:
+        warn: no
       
     - name: Initialize database
       command: '{{ init_db }}'   
@@ -12,7 +31,7 @@
         path: '{{ data_dir }}'
         owner: 26
         group: 26
-        mode: 0700 
+        mode: 0700
 
     - name: Create pg_hba.conf file
       copy:
@@ -23,11 +42,17 @@
           local   all             all                                     peer
           # IPv4 local connections:
           #host    all             all             127.0.0.1/32            ident
-          host    all             all             127.0.0.1/32            md5
+          host    all             all             10.65.207.9/0            md5
           # IPv6 local connections:
           #host    all             all             ::1/128                 ident
           host    all             all             ::1/128                 md5      
         dest: '{{ data_dir }}pg_hba.conf'      
+
+    - name: Change postgresql listenaddress
+      lineinfile:
+        path: '{{ data_dir }}postgresql.conf'
+        line: listen_addresses = '*'
+        insertafter: EOF
 
     - name: Start postgresql service 
       service: 
@@ -37,6 +62,8 @@
 
     - name: Alter db user passwd
       command: sudo -u postgres psql -c "ALTER USER {{ db_user }} WITH PASSWORD '{{ db_pass }}';"
+      args:
+        warn: no
 
     - name: Create database 
       postgresql_db:

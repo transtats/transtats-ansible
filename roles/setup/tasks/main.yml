@@ -1,59 +1,21 @@
 ---
-# tasks to setup  
-    - name: Download .rpm package
-      get_url:
-        dest: /tmp/epel-release-latest-7.noarch.rpm
-        url: '{{ epel_url }}'
-        force: no
-      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"   
-    
-    - name: Uninstall epel package if already installed
-      package: 
-        name: epel-release.noarch
-        state: absent  
-      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"     
+- name: Update all
+  package:
+    name: '*'
+    state: latest  
 
-    - name: Install Downloaded .rpm package
-      package:
-        name: /tmp/epel-release-latest-7.noarch.rpm
-        state: present
-      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"   
+- name: Ensure necessary packages present
+  package:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - '{{ system_packages }}'
 
-    - name: Update all
-      package:
-        name: '*'
-        state: latest  
 
-    - name: Install necessary packages
-      package:
-        name: "{{ item }}"
-        state: latest
-      with_items:
-        - '{{ system_packages }}'
+- name: install the 'Development tools' package group
+  package:
+    name: '@Development tools'
+    state: latest
+    update_cache: yes
 
-    - name: Uninstall pgdg package if already install
-      package: 
-        name: pgdg-centos95.noarch
-        state: absent
-      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"     
-
-    - name: Install pgdg package
-      package:
-        name: '{{ pgdg_url }}'
-        state: present
-      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL" 
-
-    - name: Uninstall older db packages
-      package: 
-        name: "{{item}}"
-        state: absent
-      with_items:
-        - '{{ db_packages }}' 
-
-    - name: Install postgresql package's
-      package: 
-        name: "{{item}}"
-        state: latest
-      with_items:
-        - '{{ db_packages }}' 
 
