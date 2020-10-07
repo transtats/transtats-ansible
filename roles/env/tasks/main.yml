@@ -74,7 +74,7 @@
        lineinfile:
          path: '{{ app_home }}/{{ app_name }}/settings/keys.json'
          regexp: '^(.*)"DATABASE_HOST"(.*)$'
-         line: '  "DATABASE_HOST": "10.65.207.93",'
+         line: '  "DATABASE_HOST": {{ groups.database | to_json | replace("[", "") | replace("]", "") }},'
        become: true
        become_method: su
        become_user: '{{ application_user }}'
