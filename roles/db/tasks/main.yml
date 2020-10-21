@@ -1,5 +1,36 @@
 ---
 # task file db 
+    - name: Download .rpm package
+      get_url:
+        dest: /tmp/epel-release-latest-7.noarch.rpm
+        url: '{{ epel_url }}'
+        force: no
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"   
+    
+    - name: Uninstall epel package if already installed
+      package: 
+        name: epel-release.noarch
+        state: absent  
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"     
+
+    - name: Install Downloaded .rpm package
+      package:
+        name: /tmp/epel-release-latest-7.noarch.rpm
+        state: present
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"
+
+    - name: Uninstall pgdg package if already install
+      package:
+        name: pgdg-centos95.noarch
+        state: absent
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"
+
+    - name: Install pgdg package
+      package:
+        name: '{{ pgdg_url }}'
+        state: present
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RHEL"
+
     - name: Update all
       dnf:
         name: '*'
