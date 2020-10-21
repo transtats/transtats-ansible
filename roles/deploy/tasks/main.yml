@@ -3,49 +3,83 @@
     - group:
         name: '{{ application_user }}'
         state: present
-      ignore_errors: true  
+      ignore_errors: true
 
     - name: Add the nginx user to your group
       command: 'usermod -a -G {{ application_user }} nginx'
 
     - name: Give our user group execute permissions on our home directory
-      command: 'chmod 710 {{ user_home }}'
+      file:
+        path: '{{ user_home }}'
+        mode: '0710'
 
-    - name: Change {{ user_home }} permission 
-      command: 'chown -R {{ application_user }}:nginx {{ user_home }}'
+    - name: Change {{ user_home }} permission
+      file:
+        path: '{{ user_home }}'
+        state: directory
+        recurse: yes
+        owner: '{{ application_user }}'
+        group: nginx
 
-
-    - name: Create gunicorn.service file
+    - name: Create transtats.service file
       copy:
-        content: |        
+        content: |
           [Unit]
-          Description=gunicorn daemon
+          Description=transtats daemon
+          Requires=transtats.socket
           After=network.target
 
           [Service]
           User={{ application_user }}
           Group=nginx
-          WorkingDirectory={{ user_home }}/transtats
-          ExecStart={{ user_home }}/transtats/projectenv/bin/gunicorn --workers 3 --bind unix:{{ user_home }}/transtats/transtats/transtats.sock transtats.wsgi:application
+          WorkingDirectory={{ app_home }}
+          ExecStart={{ app_home }}/projectenv/bin/gunicorn --workers 3 --bind unix:/run/transtats.sock transtats.wsgi:application
 
           [Install]
           WantedBy=multi-user.target
-        dest: /etc/systemd/system/gunicorn.service
+        dest: /etc/systemd/system/transtats.service
 
-    - name: Start gunicorn service
+    - name: Create transtats.socket
+      copy:
+        content: |
+          [Unit]
+          Description=transtats socket
+
+          [Socket]
+          ListenStream=/run/transtats.sock
+          # Our service won't need permissions for the socket, since it
+          # inherits the file descriptor by socket activation
+          # only the nginx daemon will need access to the socket
+          User=nginx
+          # Optionally restrict the socket permissions even more.
+          # Mode=600
+
+          [Install]
+          WantedBy=sockets.target
+        dest: /etc/systemd/system/transtats.socket
+
+    - name: Set SELinux permissive permanently
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX=(.*)$'
+        line: 'SELINUX=permissive'
+
+    - name: Set SELinux permissive
+      shell: '/usr/sbin/setenforce 0'
+
+    - name: Start transtats service
       service:
-        name: gunicorn
+        name: transtats.service
         enabled: yes
         state: restarted
         daemon_reload: yes
 
-    - name: Get ip
-      shell: "hostname -I | cut -d ' ' -f 1" 
-      register: ip
-
-    - set_fact: 
-         server_ip: "{{ ip.stdout }}"
-         cacheable: true      
+    - name: Start transtats socket
+      service:
+        name: transtats.socket
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
 
     - name: Copy content to nginx.conf 
       blockinfile: 
@@ -54,25 +88,27 @@
         content: | 
           server {
                    listen 80;
-                   server_name "{{ server_ip }}";
-
-                   location = /favicon.ico { access_log off; log_not_found off; }
-                   location /static/ {
-                   root {{ user_home }}/transtats/transtats;
-                  }
+                   server_name _;
 
                   location / {
                      proxy_set_header Host $http_host;
                      proxy_set_header X-Real-IP $remote_addr;
                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                      proxy_set_header X-Forwarded-Proto $scheme;
-                     proxy_pass http://unix:{{ user_home }}/transtats/transtats/transtats.sock;
+                     proxy_pass http://unix:/run/transtats.sock;
                      proxy_connect_timeout 300s;
                      proxy_read_timeout 300s;
                   }
                 } 
 
-    - service: 
+    - name: Add port 80/tcp to firewall
+      firewalld:
+        port: 80/tcp
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+    - service:
         name: nginx
         enabled: yes
         state: started

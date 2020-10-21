@@ -6,65 +6,94 @@
      - name: create user transtats
        user:
          name: '{{ application_user }}'
+         password: '$y$j9T$Z9j.RIk8qvi.wVB0bvQ///$W6e/q1qn4BeerzGVMx5cF77Az4EreNagZcau0JgA2.0'
          shell: /bin/bash
          comment: "transtats"
          uid: 1040
-         group: nginx
-         
-     - name: switch user to transtats
-       command: '/bin/su - {{ application_user }}'
 
      - name: Get url
        shell: curl -s {{ application_url }} | grep tarball_url | head -n 1 | cut -d '"' -f 4
        register: url
-       
-     - set_fact: 
+
+     - set_fact:
          transtats_url: "{{ url.stdout }}"
-         cacheable: true       
+         cacheable: true
 
-     - debug:
-         msg: "git_clone value {{ git_clone }}"  
+     - name: Download transtats tarfile
+       get_url:
+         dest: '{{ user_home }}/transtats.tar.gz'
+         url: "{{ transtats_url }}"
+         force: yes
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-     - name: clone git repo
-       include_tasks: gitclone.yml
-       when: '{{ git_clone }} == true'
-
-     - name: Download released trastats tar file 
-       include_tasks: cloneReleaseTar.yml
-       when: '{{ git_clone }} == false'    
-
-     - copy:
-         src: '{{ user_home }}/transtats/transtats/settings/keys.json.example'
-         dest: '{{ user_home }}/transtats/transtats/settings/keys.json'
+     - name: Extract transtats.tar.gz into '{{ user_home }}'
+       unarchive:
+         src: '{{ user_home }}/transtats.tar.gz'
+         dest: '{{ user_home }}/'
          remote_src: yes
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-     - command: 'cd {{ user_home }}/transtats'
+     - name: Remove existing app_home
+       file:
+         path: '{{ app_home }}'
+         state: absent
+
+     - name: Move code to '{{ user_home }}'/transtats
+       shell: 'mv {{ user_home }}/transtats-transtats* {{ app_home }}'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
      - name: Create virtual env
        command: 'virtualenv --system-site-packages --python=python3 projectenv'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-     - name: activate virtual env
-       shell: 'source projectenv/bin/activate'   
+     - name: Activate virtualenv
+       shell: 'source projectenv/bin/activate'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-#This is temporary change until next release 
-     - name: Replace django version to 1.11.8
+     - name: Copying key.json.example to key.json
+       command: 'cp {{ app_home }}/{{ app_name }}/settings/keys.json.example {{ app_home }}/{{ app_name }}/settings/keys.json'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
+
+     - name: Updating keys.json with required values
        lineinfile:
-        path: '{{ requirements_path }}'
-        state: present
-        regexp: 'Django'
-        line: 'Django==1.11.8'  
+         path: '{{ app_home }}/{{ app_name }}/settings/keys.json'
+         regexp: '^(.*)"DATABASE_HOST"(.*)$'
+         line: '  "DATABASE_HOST": {{ groups.database | to_json | replace("[", "") | replace("]", "") }},'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-     - name: install requirements
-       pip: 
+     - name: install package-requirements
+       pip:
          requirements: '{{ requirements_path }}'
-         virtualenv: '{{ user_home }}/transtats/projectenv'
+         state: latest
+         virtualenv: '{{ app_home }}/projectenv'
          virtualenv_command: virtualenv
+         virtualenv_site_packages: yes
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'
 
-     - name: Run make migrate and make static
-       shell: 'cd {{ user_home }}/transtats && source projectenv/bin/activate && make migrate'  
-
-
-
-     
-     
-
+     - name: Activate virtualenv, Run make migrate & make static and initlogin
+       shell: 'source projectenv/bin/activate && make migrate && make static && ./manage.py initlogin'
+       args:
+         chdir: '{{ app_home }}'
+       become: true
+       become_method: su
+       become_user: '{{ application_user }}'

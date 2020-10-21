@@ -9,7 +9,7 @@ Ansible project for Deploying Transtats
 - Edit the `transtats-ansible/hosts` file and enter the IP address of the server you are
 	deploying to.
 - If you want to deploy app on different platform just create platform ansible-distriution-name-vars.yml file in vars folder e.g RHEL-vars.yml. 	
-- Run the playbook:
+oko- Run the playbook:
 
 	```
 	cd transtats-ansible
@@ -24,9 +24,4 @@ Ansible project for Deploying Transtats
 
 	Replace the value in place of db_name, db_user, db_pass and db_host. 
 
-- Run playbook with current/latest master branch.
 
-	```
-    cd transtats-ansible
-	ansible-playbook --extra-vars "git_clone=true" provision.yml 
-	```

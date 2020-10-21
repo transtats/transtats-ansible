@@ -12,5 +12,11 @@ application_user: transtats
 #path of requirements to be install  
 requirements_path: /home/transtats/transtats/requirements/base.txt
 
-# Users/Application home
+# Users home
 user_home: /home/{{ application_user }}
+
+# Application Name
+app_name: transtats
+
+#Application home
+app_home: '{{ user_home }}/{{ app_name }}'
