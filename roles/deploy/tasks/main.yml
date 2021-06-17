@@ -34,6 +34,8 @@
           Group=nginx
           WorkingDirectory={{ app_home }}
           ExecStart={{ app_home }}/projectenv/bin/gunicorn --workers 3 --bind unix:/run/transtats.sock transtats.wsgi:application
+          
+          ExecStartPre=+/bin/chown -R {{ application_user }}:{{ application_user }} {{ app_home }}/logs
 
           [Install]
           WantedBy=multi-user.target
