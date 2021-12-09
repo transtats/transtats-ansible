@@ -33,6 +33,8 @@ system_packages:
 - redis 
 - nginx
 - vim
+- firewalld
+- libpq-devel
 
 #Database packages
 db_packages:

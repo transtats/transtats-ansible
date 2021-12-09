@@ -1,6 +1,7 @@
 ---
 # task file for deploy
-    - group:
+    - name: Crete {{ application_user }} group
+      group:
         name: '{{ application_user }}'
         state: present
       ignore_errors: true
@@ -12,14 +13,6 @@
       file:
         path: '{{ user_home }}'
         mode: '0710'
-
-    - name: Change {{ user_home }} permission
-      file:
-        path: '{{ user_home }}'
-        state: directory
-        recurse: yes
-        owner: '{{ application_user }}'
-        group: nginx
 
     - name: Create transtats.service file
       copy:
@@ -34,8 +27,6 @@
           Group=nginx
           WorkingDirectory={{ app_home }}
           ExecStart={{ app_home }}/projectenv/bin/gunicorn --workers 3 --bind unix:/run/transtats.sock transtats.wsgi:application
-          
-          ExecStartPre=+/bin/chown -R {{ application_user }}:{{ application_user }} {{ app_home }}/logs
 
           [Install]
           WantedBy=multi-user.target
@@ -83,6 +74,13 @@
         state: restarted
         daemon_reload: yes
 
+    - name: remove lines
+      replace:
+        path: /etc/nginx/nginx.conf
+        regexp: '(?s)   server {.*?listen.*?# Settings for a TLS enabled server.'
+        replace: ''
+        backup: yes
+
     - name: Copy content to nginx.conf 
       blockinfile: 
         path: /etc/nginx/nginx.conf
@@ -103,6 +101,13 @@
                   }
                 } 
 
+          # Settings for a TLS enabled server.
+
+    - name: Start firewalld service
+      service:
+        name: firewalld
+        state: started
+
     - name: Add port 80/tcp to firewall
       firewalld:
         port: 80/tcp
@@ -110,7 +115,82 @@
         immediate: yes
         state: enabled
 
-    - service:
+    - name: Sart nginx service
+      service:
         name: nginx
         enabled: yes
         state: started
+
+# Celery configuration
+
+    - name: Copying .ini file to supervisord.d directory
+      copy: src={{ item.src }} dest={{ item.dest }} remote_src=yes
+      with_items:
+        - { src: '{{ app_home }}/deploy/nginx/redis.ini', dest: '/etc/supervisord.d/redis.ini' }
+        - { src: '{{ app_home }}/deploy/nginx/transtats_celery.ini', dest: '/etc/supervisord.d/transtats_celery.ini' }
+        - { src: '{{ app_home }}/deploy/nginx/transtats_celerybeat.ini', dest: '/etc/supervisord.d/transtats_celerybeat.ini' }
+
+    - name: Creating run and Celery under '{{ app_home }}'
+      file:
+        path: '{{ item }}'
+        owner: '{{ application_user }}'
+        state: directory
+      with_items:
+        - '{{ app_home }}/run'
+        - '{{ app_home }}/transtats/logs/celery'
+
+    - name: Creating log files '{{ app_home }}/transtats/logs/celery'
+      file:
+        path: '{{ item }}'
+        owner: '{{ application_user }}'
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+      with_items:
+        - '{{ app_home }}/transtats/logs/celery/redis.log'
+        - '{{ app_home }}/transtats/logs/celery/redis_err.log'
+        - '{{ app_home }}/transtats/logs/celery/transtats_worker.log'
+        - '{{ app_home }}/transtats/logs/celery/transtats_beat.log'
+
+    - name: Starting and enabling redis service
+      service:
+        name: redis
+        state: started
+        enabled: yes
+
+    - name: Find PID of supervisord process
+      command: /usr/bin/pgrep supervisord
+      register: spid
+      ignore_errors: yes
+
+    - name: Kill supervisord process
+      command: /usr/bin/kill -9 '{{ spid.stdout }}'
+      ignore_errors: yes
+
+    - name: supervisord job .pid
+      command: /usr/bin/supervisord -c /etc/supervisord.conf -j '{{ app_home }}'/run/supervisord.pid  
+
+# Test Celery configuration
+
+    - name: Test Celery configuration
+      command: /usr/bin/redis-cli ping
+      register: redis_cli_output
+
+    - debug:
+        msg: '`redis-cli ping` replied with PONG'
+      when: "'PONG' in redis_cli_output.stdout"
+
+    - name: Check transtatscelery status
+      shell: /usr/bin/supervisorctl status transtatscelery
+      register: transtatscelery_output
+
+    - debug:
+        var: transtatscelery_output
+
+    - name: Check transtatscelerybeat status
+      shell: /usr/bin/supervisorctl status transtatscelerybeat
+      register: transtatscelerybeat_output
+
+    - debug:
+        var: transtatscelerybeat_output
+

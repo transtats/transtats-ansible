@@ -13,8 +13,16 @@ oko- Run the playbook:
 
 	```
 	cd transtats-ansible
-	ansible-playbook provision.yml
-	```	
+	ansible-playbook provision.yml  
+- Run playbook with environment variable if you want to change the default remote_user (root) in ansible.cfg
+    ```
+    cd transtats-ansible
+    ansible-playbook --extra-vars "REMOTE_USER=remote_user" 	provision.yml
+- By default this playbook download Transtats latest released tar.gz file for deployment. For different transtats version deployment, one can use environment variables
+release_testing (false|default) and test_target_url (https://github.com/transtats/transtats/archive/refs/heads/devel.zip|default).
+   ```
+   cd transtas-ansible
+       ansible-playbook --extra-vars "TEST_TARGET_URL=https://github.com/transtats/transtats/archive/refs/heads/r085.zip RELEASE_TESTING=true" provision.yml
 - Run playbook with environment variable if you want to change the db name..etc
 
     ```

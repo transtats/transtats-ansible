@@ -12,21 +12,32 @@
          uid: 1040
 
      - name: Get url
-       shell: curl -s {{ application_url }} | grep tarball_url | head -n 1 | cut -d '"' -f 4
-       register: url
+       shell: curl -s {{ application_url }} | cut -d '/' -f8 | cut -d '"' -f1
+       register: version
 
      - set_fact:
-         transtats_url: "{{ url.stdout }}"
+         transtats_version: "{{ version.stdout }}"
          cacheable: true
+     - debug:
+         msg: "{{ transtats_version }}"
 
-     - name: Download transtats tarfile
+     - name: Download latest transtats tarfile
        get_url:
          dest: '{{ user_home }}/transtats.tar.gz'
-         url: "{{ transtats_url }}"
+         url: "https://github.com/transtats/transtats/archive/{{ transtats_version }}.tar.gz"
          force: yes
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
+       when: release_testing == "false"
+
+     - name: Download test target transtats zip file
+       get_url:
+         dest: '{{ user_home }}/transtats.zip'
+         url: "{{ test_target_url }}"
+         force: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "true"
 
      - name: Extract transtats.tar.gz into '{{ user_home }}'
        unarchive:
@@ -34,8 +45,17 @@
          dest: '{{ user_home }}/'
          remote_src: yes
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
+       when: release_testing == "false"
+
+     - name: Extract transtats.zip into '{{ user_home }}'
+       unarchive:
+         src: '{{ user_home }}/transtats.zip'
+         dest: '{{ user_home }}/'
+         remote_src: yes
+       become: true
+       become_user: '{{ application_user }}'
+       when: release_testing == "true"
 
      - name: Remove existing app_home
        file:
@@ -43,9 +63,8 @@
          state: absent
 
      - name: Move code to '{{ user_home }}'/transtats
-       shell: 'mv {{ user_home }}/transtats-transtats* {{ app_home }}'
+       shell: 'mv {{ user_home }}/transtats*/  {{ app_home }}/'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: Create virtual env
@@ -53,7 +72,6 @@
        args:
          chdir: '{{ app_home }}'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: Activate virtualenv
@@ -61,13 +79,11 @@
        args:
          chdir: '{{ app_home }}'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: Copying key.json.example to key.json
        command: 'cp {{ app_home }}/{{ app_name }}/settings/keys.json.example {{ app_home }}/{{ app_name }}/settings/keys.json'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: Updating keys.json with required values
@@ -76,7 +92,6 @@
          regexp: '^(.*)"DATABASE_HOST"(.*)$'
          line: '  "DATABASE_HOST": {{ groups.database | to_json | replace("[", "") | replace("]", "") }},'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: install package-requirements
@@ -87,7 +102,6 @@
          virtualenv_command: virtualenv
          virtualenv_site_packages: yes
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
 
      - name: Activate virtualenv, Run make migrate & make static and initlogin
@@ -95,5 +109,4 @@
        args:
          chdir: '{{ app_home }}'
        become: true
-       become_method: su
        become_user: '{{ application_user }}'
