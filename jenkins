@@ -1,0 +1,16 @@
+pipeline{
+    agent any
+    stages{
+        stage('Transtats checkout'){
+            steps{
+                git changelog: false, credentialsId: 'git-creds', poll: false, url: 'https://github.com/transtats/transtats-ansible.git'
+            }
+        }
+        
+        stage('Execute ansible-playbook to build and deploy transtats'){
+            steps{
+                ansiblePlaybook credentialsId: 'ts-database', disableHostKeyChecking: true, extras: '--extra-vars "REMOTE_USER=krishna TEST_TARGET_URL=https://github.com/transtats/transtats/archive/refs/heads/r085.zip RELEASE_TESTING=true"', installation: 'ansible-pb-buildnddeploy', inventory: 'hosts', playbook: 'provision.yml'
+            }
+        }
+    }
+}
