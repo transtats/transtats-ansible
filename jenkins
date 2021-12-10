@@ -3,7 +3,7 @@ pipeline{
     stages{
         stage('Transtats checkout'){
             steps{
-                git changelog: false, credentialsId: 'git-creds', poll: false, url: 'https://github.com/transtats/transtats-ansible.git'
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/krisnababu/temp-ts-ansible.git'
             }
         }
         
